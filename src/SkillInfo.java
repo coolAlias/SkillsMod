@@ -16,6 +16,8 @@ import coolalias.skillsmod.skills.Attribute;
 import coolalias.skillsmod.skills.SkillActive;
 import coolalias.skillsmod.skills.SkillBase;
 import coolalias.skillsmod.skills.SkillBase.AttributeCode;
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
 
 /**
  * 
@@ -121,29 +123,75 @@ public class SkillInfo implements IExtendedEntityProperties
 	}
 	
 	/**
-	 * Adds XP amount to the corresponding attribute by enum type
+	 * Adds Xp amount to the corresponding attribute by enum type
 	 */
-	public void addXP(float amount, AttributeCode attribute) { addXP(amount, (byte) attribute.ordinal()); }
+	public void addXp(float amount, AttributeCode attribute) { addXp(amount, (byte) attribute.ordinal()); }
 	
 	/**
-	 * Adds XP amount to the corresponding attribute by id (ordinal position in the enum type)
+	 * Adds Xp amount to the corresponding attribute by id (ordinal position in the enum type)
 	 */
-	public void addXP(float amount, byte id) throws IllegalArgumentException
+	public void addXp(float amount, byte id) throws IllegalArgumentException
 	{
 		if (id < SkillBase.NUM_ATTRIBUTES && baseSkills.containsKey(id))
 		{
-			//if (this.player.worldObj.isRemote) { PacketHandler.sendAddXpPacket(player, amount, id); }
-			// add xp on both sides
-			Attribute attribute = (Attribute) baseSkills.get(id);
-			if (attribute.addXP(player, amount)) {
-				++totalLevel;
-				if (totalLevel <= MAX_SKILL_POINTS)
-					++skillPoints;
-				player.addChatMessage("Current unallocated skill points: " + skillPoints);
+			if (this.player.worldObj.isRemote) {
+				addClientXp(amount, id);
+			} else {
+				Attribute attribute = (Attribute) baseSkills.get(id);
+				if (attribute.addXp(player, amount)) {
+					++totalLevel;
+					if (totalLevel <= MAX_SKILL_POINTS)
+						++skillPoints;
+					// TODO send levelUp packet to client to sync character level and skill points
+					// TODO remove chat message; integrate with level up message in HUD
+					player.addChatMessage("Current unallocated skill points: " + skillPoints);
+				}
+				PacketHandler.sendAttributePacket(player, attribute);
+				baseSkills.put(id, attribute);
 			}
-			baseSkills.put(id, attribute);
 		} else {
 			throw new IllegalArgumentException("SEVERE: ID value of " + id + " is not a valid attribute id!");
+		}
+	}
+	
+	// TODO client side only annotation causes NoSuchFieldError during entity constructing, maybe because it's initialized outside a method
+	//@SideOnly(Side.CLIENT)
+	private float[] clientXp = {0.0F,0.0F,0.0F,0.0F}; // new float[SkillBase.NUM_ATTRIBUTES]
+	
+	/** Amount of Xp after which the client will send update packet to server */
+	//@SideOnly(Side.CLIENT)
+	private static final float THRESHOLD = 0.01F;
+	
+	/**
+	 * Client side accumulates XP in a buffer, sending packet to server when it reaches
+	 * a certain threshold
+	 */
+	@SideOnly(Side.CLIENT)
+	private void addClientXp(float amount, byte id) {
+		clientXp[id] += amount;
+		if (clientXp[id] > THRESHOLD) {
+			System.out.println("Client xp " + clientXp[id] + " exceeds threshold, sending to server and clearing buffer");
+			PacketHandler.sendAddXpPacket(player, amount, id);
+			clientXp[id] = 0.0F;
+		}
+	}
+	
+	/**
+	 * Reads single Attribute from stream and updates the local baseSkills map
+	 * Should only be needed on the client side to update from server
+	 * TODO generalize to update any type of skill (should only be needed for Attributes, though, as gaining other skills is done on both sides?)
+	 */
+	public void updateAttributeFromStream(DataInputStream inputStream) throws IOException, IllegalArgumentException
+	{
+		byte id = inputStream.readByte();
+		if (id < SkillBase.NUM_ATTRIBUTES) {
+			baseSkills.put(id, SkillBase.skillsList[id].loadFromStream(id, inputStream));
+			System.out.println("Attribute read from stream: " + baseSkills.get(id).name + ", current XP: " + ((Attribute) baseSkills.get(id)).getXp());
+			//Attribute attribute = (Attribute) SkillBase.skillsList[id].loadFromStream(id, inputStream);
+			// TODO this way won't update character level / skill points
+			//baseSkills.put(id, attribute);
+		} else {
+			throw new IllegalArgumentException("Updating attribute from packet contains invalid id " + id);
 		}
 	}
 	

@@ -24,19 +24,19 @@ import net.minecraft.util.ResourceLocation;
 public final class Attribute extends SkillBase 
 {
 	/** Stores current xp and xp needed for next level */
-	private float xp = 0F, nextXP;
+	private float xp = 0F, nextXp;
 	
 	/**
 	 * Constructs immutable Attribute instance and registers it to the skill database
 	 */
 	protected Attribute(String name, AttributeCode code) {
 		super(name, (byte) code.ordinal(), code, (byte) 0, MAX_ATTRIBUTE, true);
-		nextXP = calculateNextXP();
+		nextXp = calculateNextXp();
 	}
 	
 	private Attribute(SkillBase skill) {
 		super(skill.name, skill.id, skill.attribute, skill.tier, skill.maxLevel, false);
-		nextXP = calculateNextXP();
+		nextXp = calculateNextXp();
 	}
 	
 	@Override
@@ -58,9 +58,9 @@ public final class Attribute extends SkillBase
 	public final void readFromNBT(NBTTagCompound compound) {
 		super.readFromNBT(compound);
 		xp = compound.getFloat("xp");
-		nextXP = calculateNextXP();
+		nextXp = calculateNextXp();
 		// TODO remove debug; integrate XP display into HUD
-		System.out.println(this.name + " XP from NBT: " + xp + "/" + nextXP);
+		System.out.println(this.name + " XP from NBT: " + xp + "/" + nextXp);
 	}
 	
 	@Override
@@ -81,35 +81,35 @@ public final class Attribute extends SkillBase
 		Attribute skill = new Attribute(skillsList[id]);
 		skill.level = inputStream.readByte();
 		skill.xp = inputStream.readFloat();
-		skill.nextXP = skill.calculateNextXP();
+		skill.nextXp = skill.calculateNextXp();
 		return skill;
 	}
 	
 	/** Returns current XP amount for an instance of Attribute */
-	public final float getXP() { return xp; }
+	public final float getXp() { return xp; }
 	
 	/** Returns current XP required for next level for an instance of Attribute */
-	public final float getNextXP() { return nextXP; }
+	public final float getNextXp() { return nextXp; }
 	
 	/** Returns true if Attribute has acquired enough skill to increase in level */
-	public final boolean canIncreaseLevel() { return xp >= nextXP; }
+	public final boolean canIncreaseLevel() { return xp >= nextXp; }
 	
 	/** Adds amount to XP, even if negative. Won't go below zero. */
-	private final void addXP(float amount) { xp = MathHelper.clamp_float(xp + amount, 0, Float.MAX_VALUE); }
+	private final void addXp(float amount) { xp = MathHelper.clamp_float(xp + amount, 0, Float.MAX_VALUE); }
 	
 	/** Calculates amount of XP needed to achieve the next level */
 	// TODO refine leveling algorithm
-	private final float calculateNextXP() { return (float) Math.pow(this.level, 2) + 1; }
+	private final float calculateNextXp() { return (float) Math.pow(this.level, 2) + 1; }
 	
 	/**
 	 * Adds XP and increases skill level if applicable
 	 * @return true if skill level was incremented
 	 */
-	public final boolean addXP(EntityPlayer player, float amount)
+	public final boolean addXp(EntityPlayer player, float amount)
 	{
-		addXP(amount);
+		addXp(amount);
 		// TODO remove debug / integrate messages into HUD display
-		System.out.println("Client? " + player.worldObj.isRemote + ", " + amount + " " + name + " xp gained! Current XP: " + xp + "/" + nextXP);
+		System.out.println("Client? " + player.worldObj.isRemote + ", " + amount + " " + name + " xp gained! Current XP: " + xp + "/" + nextXp);
 		
 		if (grantSkill(player)) {
 			player.addChatMessage(name + " leveled up! Now level " + level);
@@ -127,8 +127,8 @@ public final class Attribute extends SkillBase
 	{
 		if (canIncreaseLevel()) {
 			// TODO if this class is made abstract, make call to abstract method for subclasses here
-			addXP(-nextXP);
-			nextXP = calculateNextXP();
+			addXp(-nextXp);
+			nextXp = calculateNextXp();
 			return true;
 		}
 		return false;
