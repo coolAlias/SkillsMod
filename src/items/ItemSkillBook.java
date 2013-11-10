@@ -7,7 +7,10 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemBook;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.world.World;
+import coolalias.skillsmod.SkillInfo;
+import coolalias.skillsmod.SkillsMod;
 import coolalias.skillsmod.skills.SkillActive;
 import coolalias.skillsmod.skills.SkillBase;
 import cpw.mods.fml.relauncher.Side;
@@ -44,22 +47,26 @@ public class ItemSkillBook extends ItemBook
 	
 	@Override
 	public String getUnlocalizedName(ItemStack stack) {
-		String name = getItemStackDisplayName(stack);
-		return name.substring(0, name.indexOf("."));
+		return getItemStackDisplayName(stack);
 	}
 	
+	// TODO this still doesn't get rid of the '.name' appended to the tooltip display
 	@Override
 	public String getItemStackDisplayName(ItemStack stack) {
 		SkillActive skill = getSkillFromStack(stack);
-		if (skill != null) { return "Skill Book of " + skill.name + getTierForDisplay(stack); }
-		return "Generic Skill Book";
+		String name = "Generic Skill Book";
+		if (skill != null) { name = "Skill Book of " + skill.name + getTierForDisplay(stack); }
+		return name.contains(".") ? name.substring(0, name.indexOf(".")) : name;
 	}
 	
 	@Override
 	@SideOnly(Side.CLIENT)
 	public void addInformation(ItemStack stack, EntityPlayer player, List list, boolean par4) {
 		SkillActive skill = getSkillFromStack(stack);
-		if (skill != null) { list.addAll(skill.getDescription()); }
+		if (skill != null) {
+			list.add("Use to learn or activate");
+			list.addAll(skill.getDescription());
+		}
 	}
 	
 	@Override
@@ -67,9 +74,17 @@ public class ItemSkillBook extends ItemBook
 	{
 		SkillActive skill = getSkillFromStack(stack);
 		if (skill != null) {
+			SkillInfo info = SkillInfo.get(player);
 			
-			if (!player.capabilities.isCreativeMode) {
-				--stack.stackSize;
+			if (!info.hasSkill(skill.id) || info.getActiveSkills().get(skill.id).getLevel() < getSkillTier(stack))
+			{
+				//if (info.grantSkill(skill.id) && !player.capabilities.isCreativeMode) {
+				if (!player.capabilities.isCreativeMode) {
+					--stack.stackSize;
+				}
+				info.grantSkill(skill.id);
+			} else {
+				skill.activate(world, player);
 			}
 		}
 		return stack;
@@ -112,15 +127,15 @@ public class ItemSkillBook extends ItemBook
 	 * Returns string version of the  skill tier this stack will teach when used, or "" if no tier has been set
 	 */
 	private static String getTierForDisplay(ItemStack stack) {
-		if (stack.hasTagCompound() && stack.getTagCompound().hasKey("skillTier"))
-			return " Tier " + stack.getTagCompound().getInteger("skillTier");
-		return "";
+		return EnumChatFormatting.ITALIC + (" (Lvl " + getSkillTier(stack) + ")");
 	}
 	
 	/**
 	 * Returns the skill tier this stack will teach when used, or 1 if no tier was set
 	 */
 	private static int getSkillTier(ItemStack stack) {
+		if (stack.hasTagCompound() && stack.getTagCompound().hasKey("skillTier"))
+			return stack.getTagCompound().getInteger("skillTier");
 		return 1;
 	}
 }

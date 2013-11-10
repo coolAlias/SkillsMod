@@ -4,7 +4,7 @@ import net.minecraft.item.Item;
 import net.minecraftforge.common.MinecraftForge;
 import coolalias.skillsmod.entity.skill.EntityFireBlast;
 import coolalias.skillsmod.items.ItemSkillBook;
-import cpw.mods.fml.common.FMLCommonHandler;
+import coolalias.skillsmod.skills.SkillBase;
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.Mod.EventHandler;
 import cpw.mods.fml.common.Mod.Instance;
@@ -15,6 +15,8 @@ import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.network.NetworkMod;
 import cpw.mods.fml.common.network.NetworkRegistry;
 import cpw.mods.fml.common.registry.EntityRegistry;
+import cpw.mods.fml.common.registry.GameRegistry;
+import cpw.mods.fml.common.registry.LanguageRegistry;
 
 @Mod(modid = "skillsmod", name = "Skills Mod", version = "0.1.0")
 @NetworkMod(clientSideRequired=true, serverSideRequired=false, channels = {"skillsmod"}, packetHandler = PacketHandler.class)
@@ -34,9 +36,6 @@ public final class SkillsMod
 	
 	public static final Item skillBook = new ItemSkillBook(modItemIndex++).setUnlocalizedName("skillBook");
 
-	/** Custom GUI indices: */
-	//public static final int GUI_CUSTOM_INV = modGuiIndex++;
-
 	@EventHandler
 	public void preInit(FMLPreInitializationEvent event)
 	{
@@ -47,6 +46,7 @@ public final class SkillsMod
 	public void load(FMLInitializationEvent event)
 	{
 		proxy.registerRenderers();
+		addRecipes();
 		MinecraftForge.EVENT_BUS.register(new SkillsHandler());
 		NetworkRegistry.instance().registerGuiHandler(this, new CommonProxy());
 	}
@@ -54,9 +54,13 @@ public final class SkillsMod
 	@EventHandler
 	public void postInit(FMLPostInitializationEvent event)
 	{
-		if (FMLCommonHandler.instance().getEffectiveSide().isClient()) {
-			//MinecraftForge.EVENT_BUS.register(new GuiManaBar(Minecraft.getMinecraft()));
-			//RegisterKeyBindings.init();
-		}
+	}
+	
+	private void addRecipes() {
+		GameRegistry.addShapelessRecipe(ItemSkillBook.getSkillBook(SkillBase.skillsList[SkillBase.fireBlast.id], 1), Item.book, Item.gunpowder);
+		GameRegistry.addShapelessRecipe(ItemSkillBook.getSkillBook(SkillBase.skillsList[SkillBase.fireBlast.id], 2), Item.book, Item.gunpowder, Item.gunpowder);
+		GameRegistry.addShapelessRecipe(ItemSkillBook.getSkillBook(SkillBase.skillsList[SkillBase.fireBlast.id], 3), Item.book, Item.gunpowder, Item.gunpowder, Item.gunpowder);
+		GameRegistry.addShapelessRecipe(ItemSkillBook.getSkillBook(SkillBase.skillsList[SkillBase.fireBlast.id], 4), Item.book, Item.gunpowder, Item.gunpowder, Item.gunpowder, Item.gunpowder);
+		GameRegistry.addShapelessRecipe(ItemSkillBook.getSkillBook(SkillBase.skillsList[SkillBase.fireBlast.id], 5), Item.book, Item.gunpowder, Item.gunpowder, Item.gunpowder, Item.gunpowder, Item.gunpowder);
 	}
 }
