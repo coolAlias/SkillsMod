@@ -28,8 +28,8 @@ public class ItemSkillBook extends ItemBook
 	/**
 	 * Returns a new ItemStack skill book teaching given skill at given tier
 	 */
-	public ItemStack getSkillBook(SkillBase skill, int tier) {
-		ItemStack book = new ItemStack(this,1,skill.id);
+	public static ItemStack getSkillBook(SkillBase skill, int tier) {
+		ItemStack book = new ItemStack(SkillsMod.skillBook,1,skill.id);
 		setTier(book, tier);
 		return book;
 	}
