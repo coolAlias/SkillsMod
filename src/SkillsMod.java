@@ -24,7 +24,7 @@ public final class SkillsMod
 	@Instance("skillsmod")
 	public static SkillsMod instance = new SkillsMod();
 
-	@SidedProxy(clientSide = "coolalias.questskillsmod.ClientProxy", serverSide = "coolalias.questskillsmod.CommonProxy")
+	@SidedProxy(clientSide = "coolalias.skillsmod.ClientProxy", serverSide = "coolalias.skillsmod.CommonProxy")
 	public static CommonProxy proxy;
 
 	/** This is used to keep track of GUIs that we make*/
