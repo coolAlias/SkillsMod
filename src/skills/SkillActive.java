@@ -108,24 +108,27 @@ public abstract class SkillActive extends SkillBase
 	 */
 	protected void decrementCooldown() {
 		// TODO cooldown rate should be affected by other skills, but only calculate when setting the initial time to cool down
-		if (isCooling()) { --countdown; }
+		if (isCooling()) {
+			--countdown;
+			// TODO remove debug
+			if (countdown % 20 == 0)
+				System.out.println(name + " cooling down, " + countdown / 20 + " seconds remaining.");
+		}
 	}
 	
 	@Override
-	public boolean canLearn(EntityPlayer player, int targetLevel) {
+	public boolean canIncreaseLevel(EntityPlayer player, int targetLevel) {
 		return level + 1 == targetLevel && targetLevel <= maxLevel;
 	}
 	
 	@Override
 	public void writeToNBT(NBTTagCompound compound) {
 		super.writeToNBT(compound);
-		// TODO remove debug
-		System.out.println("Writing SkillActive to NBT");
 		compound.setInteger("countdown", countdown);
 	}
 	
 	@Override
-	protected boolean levelUp(EntityPlayer player) { return canLearn(player, 1); }
+	protected void levelUp(EntityPlayer player, int targetLevel) { ++level; }
 	
 	@Override
 	public void readFromNBT(NBTTagCompound compound) {

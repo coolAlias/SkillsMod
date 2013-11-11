@@ -109,11 +109,14 @@ public abstract class SkillBase
 	/** Returns a new instance from a DataInputStream */
 	public abstract SkillBase loadFromStream(byte id, DataInputStream inputStream) throws IOException;
 	
-	/** Returns current skill level */
-	public final int getLevel() { return level; }
+	/** Returns skill tier */
+	public final byte getTier() { return tier; }
 	
 	/** Returns max skill level */
-	public final int getMaxLevel() { return maxLevel; }
+	public final byte getMaxLevel() { return maxLevel; }
+	
+	/** Returns current skill level */
+	public final byte getLevel() { return level; }
 	
 	/** Returns a copy of the list containing Strings for tooltip display */
 	public final List<String> getDescription() { return new ArrayList<String>(tooltip); }
@@ -124,30 +127,32 @@ public abstract class SkillBase
 	/** Adds all entries in the provided list to the skill's tooltip display */
 	protected final SkillBase addDescription(List<String> list) { tooltip.addAll(list); return this; }
 	
-	/** Called from grantSkill method prior to the player's skill level incrementing; returning false will cancel the level up */
-	protected abstract boolean levelUp(EntityPlayer player);
-	
 	/** Returns this skill's icon resource location */
-	public abstract ResourceLocation getIconTexture(); // TODO use generic path/name.png format to simplify classes
+	// TODO use generic path/name.png format to simplify classes
+	public ResourceLocation getIconTexture() { return null; }
+	
+	/** Returns true if player meets requirements to learn this skill at target level */
+	protected abstract boolean canIncreaseLevel(EntityPlayer player, int targetLevel);
+	
+	/** Increments the skill's level and applies any bonuses, reduction of Xp, etc. that is needed; only called if 'canIncreaseLevel' returns true */
+	protected abstract void levelUp(EntityPlayer player, int targetLevel);
+	
+	/** Shortcut method to grant skill at current level + 1 */
+	public final boolean grantSkill(EntityPlayer player) { return grantSkill(player, level + 1); }
 	
 	/**
-	 * Returns true if skill's level has increased and call to levelUp(player) returned true
+	 * Returns true if skill's level has increased
 	 */
-	public final boolean grantSkill(EntityPlayer player) {
+	public final boolean grantSkill(EntityPlayer player, int targetLevel) {
+		if (level <= targetLevel) { return false; }
 		byte oldLevel = level;
-		if (level < maxLevel && levelUp(player)) {
-			++level;
-			// TODO remove debug or integrate into HUD
-			System.out.println("New Level: " + level + ", old level: " + oldLevel);
+		if (canIncreaseLevel(player, targetLevel)) {
+			// TODO remove debug / integrate into HUD
+			player.addChatMessage(name + " leveled up! Now level " + (level + 1));
+			levelUp(player, targetLevel);
 		}
 		return oldLevel < level;
 	}
-	
-	/** (Attribute and Passive version) Returns true if player meets requirements to learn this skill */
-	public final boolean canLearn(EntityPlayer player) { return canLearn(player, 0); }
-	
-	/** (Active / general version) Returns true if player meets requirements to learn this skill */
-	public abstract boolean canLearn(EntityPlayer player, int targetLevel);
 	
 	/**
 	 * Writes mutable data to NBT. When overriding, make sure to call the super method as well.

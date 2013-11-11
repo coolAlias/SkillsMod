@@ -4,10 +4,10 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
+import coolalias.skillsmod.SkillInfo;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.MathHelper;
-import net.minecraft.util.ResourceLocation;
 
 /**
  * 
@@ -43,10 +43,7 @@ public final class Attribute extends SkillBase
 	public final Attribute newInstance() { return new Attribute(this); }
 	
 	@Override
-	public ResourceLocation getIconTexture() { return null; }
-	
-	@Override
-	public final boolean canLearn(EntityPlayer player, int targetLevel) { return level < maxLevel; }
+	public final boolean canIncreaseLevel(EntityPlayer player, int targetLevel) { return xp >= nextXp && level < maxLevel; }
 	
 	@Override
 	public final void writeToNBT(NBTTagCompound compound) {
@@ -91,9 +88,6 @@ public final class Attribute extends SkillBase
 	/** Returns current XP required for next level for an instance of Attribute */
 	public final float getNextXp() { return nextXp; }
 	
-	/** Returns true if Attribute has acquired enough skill to increase in level */
-	public final boolean canIncreaseLevel() { return xp >= nextXp; }
-	
 	/** Adds amount to XP, even if negative. Won't go below zero. */
 	private final void addXp(float amount) { xp = MathHelper.clamp_float(xp + amount, 0, Float.MAX_VALUE); }
 	
@@ -102,35 +96,25 @@ public final class Attribute extends SkillBase
 	private final float calculateNextXp() { return (float) Math.pow(this.level, 2) + 1; }
 	
 	/**
-	 * Adds XP and increases skill level if applicable
+	 * Adds XP and increases skill level if applicable, as well as calling the player's SkillInfo levelUp method
 	 * @return true if skill level was incremented
 	 */
-	public final boolean addXp(EntityPlayer player, float amount)
+	public final void addXp(EntityPlayer player, float amount)
 	{
 		addXp(amount);
 		// TODO remove debug / integrate messages into HUD display
 		System.out.println("Client? " + player.worldObj.isRemote + ", " + amount + " " + name + " xp gained! Current XP: " + xp + "/" + nextXp);
-		
-		if (grantSkill(player)) {
-			player.addChatMessage(name + " leveled up! Now level " + level);
-			return true;
-		}
-		
-		return false;
+		if (grantSkill(player)) { SkillInfo.get(player).levelUp(); }
 	}
 	
 	/**
-	 * Returns true if the Attribute can increase in level and subtracts XP if appropriate
+	 * Levels the Attribute and reduces Xp accordingly until no more levels can be gained
 	 */
 	@Override
-	protected final boolean levelUp(EntityPlayer player)
-	{
-		if (canIncreaseLevel()) {
-			// TODO if this class is made abstract, make call to abstract method for subclasses here
-			addXp(-nextXp);
-			nextXp = calculateNextXp();
-			return true;
-		}
-		return false;
+	protected final void levelUp(EntityPlayer player, int targetLevel) {
+		float oldXp = nextXp;	
+		++level;
+		nextXp = calculateNextXp();
+		addXp(player, -oldXp);
 	}
 }

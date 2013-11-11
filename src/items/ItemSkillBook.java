@@ -13,6 +13,7 @@ import coolalias.skillsmod.SkillInfo;
 import coolalias.skillsmod.SkillsMod;
 import coolalias.skillsmod.skills.SkillActive;
 import coolalias.skillsmod.skills.SkillBase;
+import coolalias.skillsmod.skills.SkillBase.AttributeCode;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
@@ -31,7 +32,7 @@ public class ItemSkillBook extends ItemBook
 	/**
 	 * Returns a new ItemStack skill book teaching given skill at given tier
 	 */
-	public static ItemStack getSkillBook(SkillBase skill, int tier) {
+	public static ItemStack getSkillBook(SkillBase skill, byte tier) {
 		ItemStack book = new ItemStack(SkillsMod.skillBook,1,skill.id);
 		setTier(book, tier);
 		return book;
@@ -72,32 +73,30 @@ public class ItemSkillBook extends ItemBook
 	@Override
 	public ItemStack onItemRightClick(ItemStack stack, World world, EntityPlayer player)
 	{
+		//if (!world.isRemote) { SkillInfo.get(player).addXp(10.0F, AttributeCode.CHA); }
+		
 		SkillActive skill = getSkillFromStack(stack);
-		if (skill != null) {
+		if (skill != null)
+		{
 			SkillInfo info = SkillInfo.get(player);
-			
-			if (!info.hasSkill(skill.id) || info.getActiveSkills().get(skill.id).getLevel() < getSkillTier(stack))
-			{
-				//if (info.grantSkill(skill.id) && !player.capabilities.isCreativeMode) {
-				if (!player.capabilities.isCreativeMode) {
-					--stack.stackSize;
-				}
-				info.grantSkill(skill.id);
-			} else {
+			if (info.grantSkill(skill.id, getSkillTier(stack))) {
+				if (!player.capabilities.isCreativeMode) { --stack.stackSize; }
+			} else if (info.getSkillLevel(skill) >= getSkillTier(stack)) {
 				skill.activate(world, player);
 			}
 		}
+		
 		return stack;
 	}
 	
 	/**
 	 * Sets the skill tier this book will teach; will auto-cap at the appropriate level if necessary 
 	 */
-	public static void setTier(ItemStack stack, int tier) {
+	public static void setTier(ItemStack stack, byte tier) {
 		if (!stack.hasTagCompound()) stack.setTagCompound(new NBTTagCompound());
 		SkillActive skill = getSkillFromStack(stack);
-		int maxLevel = skill != null ? skill.getMaxLevel() : 1;
-		stack.getTagCompound().setInteger("skillTier", tier < 1 ? 1 : tier > maxLevel ? maxLevel : tier);
+		byte maxLevel = skill != null ? skill.getMaxLevel() : 1;
+		stack.getTagCompound().setByte("skillTier", tier < 1 ? 1 : tier > maxLevel ? maxLevel : tier);
 		// TODO remove debug
 		System.out.println("Tier for " + stack.getDisplayName() + " set to " + getTierForDisplay(stack));
 	}
@@ -133,9 +132,9 @@ public class ItemSkillBook extends ItemBook
 	/**
 	 * Returns the skill tier this stack will teach when used, or 1 if no tier was set
 	 */
-	private static int getSkillTier(ItemStack stack) {
+	private static byte getSkillTier(ItemStack stack) {
 		if (stack.hasTagCompound() && stack.getTagCompound().hasKey("skillTier"))
-			return stack.getTagCompound().getInteger("skillTier");
+			return stack.getTagCompound().getByte("skillTier");
 		return 1;
 	}
 }

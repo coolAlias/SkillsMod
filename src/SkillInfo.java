@@ -68,17 +68,28 @@ public class SkillInfo implements IExtendedEntityProperties
 	public boolean hasSkill(byte id) { return baseSkills.containsKey(id) || activeSkills.containsKey(id); }
 	
 	/**
-	 * Grants skill to player regardless of whether player meets base requirements
+	 * Returns the player's skill level for given skill, or 0 if the player doesn't have that skill
 	 */
-	public void grantSkill(byte id)
+	public byte getSkillLevel(SkillBase skill) {
+		if (baseSkills.containsKey(skill.id)) return baseSkills.get(skill.id).getLevel();
+		else if (activeSkills.containsKey(skill.id)) return activeSkills.get(skill.id).getLevel();
+		else return 0;
+	}
+	
+	/**
+	 * Grants skill to player if player meets the requirements; returns true if skill learned
+	 */
+	public boolean grantSkill(byte id, byte targetLevel)
 	{
 		Map map = SkillBase.skillsList[id] instanceof SkillActive ? activeSkills : baseSkills;
-		SkillBase skill = map.containsKey(id) ? (SkillBase) map.remove(id) : SkillBase.skillsList[id].newInstance();
+		SkillBase skill = map.containsKey(id) ? (SkillBase) map.get(id) : SkillBase.skillsList[id].newInstance();
+		if (skill.grantSkill(player, targetLevel)) { map.put(id, skill);  return true; }
+		return false;
+		//if (skill.grantSkill(player)) { player.addChatMessage(skill.name + " level has increased to level " + skill.getLevel() + "!"); }
+		//else { player.addChatMessage("Skill " + skill.name + " is already at the maximum level."); }
 		
-		if (skill.grantSkill(player)) { player.addChatMessage(skill.name + " level has increased to level " + skill.getLevel() + "!"); }
-		else { player.addChatMessage("Skill " + skill.name + " is already at the maximum level."); }
-		
-		map.put(id, skill);
+		//map.put(id, skill);
+		//return leveled;
 	}
 	
 	public boolean activateSkill(World world, byte id)
@@ -87,7 +98,7 @@ public class SkillInfo implements IExtendedEntityProperties
 		if (activeSkills.containsKey(id)) {
 			// TODO add canUse check to prevent using while cooling down
 			// && ((SkillActive) skills[id]).canUse(player)) {
-			return ((SkillActive) activeSkills.get(id)).activate(world, player);
+			return activeSkills.get(id).activate(world, player);
 		} else {
 			System.out.println("WARNING: attempting to activate unlearned or non-active skill " + id);
 			return false;
@@ -102,6 +113,7 @@ public class SkillInfo implements IExtendedEntityProperties
 	 */
 	// could just save the value in NBT; this way provides method of validation in case of
 	// save corruption / editing (probably unnecessary)
+	// TODO this throws NPE during extended properties loading for some reason, move call to private JoinWorldEvent
 	private void calculateCharacterLevel() {
 		totalLevel = 0;
 		for (int i = 0; i < SkillBase.NUM_ATTRIBUTES; ++i) { totalLevel += baseSkills.get(i).getLevel(); }
@@ -124,9 +136,7 @@ public class SkillInfo implements IExtendedEntityProperties
 		}
 	}
 	
-	/**
-	 * Adds Xp amount to the corresponding attribute by enum type
-	 */
+	/** Adds Xp amount to the corresponding attribute by enum type */
 	public void addXp(float amount, AttributeCode attribute) { addXp(amount, (byte) attribute.ordinal()); }
 	
 	/**
@@ -140,20 +150,29 @@ public class SkillInfo implements IExtendedEntityProperties
 				addClientXp(amount, id);
 			} else {
 				Attribute attribute = (Attribute) baseSkills.get(id);
-				if (attribute.addXp(player, amount)) {
-					++totalLevel;
-					if (totalLevel <= MAX_SKILL_POINTS)
-						++skillPoints;
-					// TODO send levelUp packet to client to sync character level and skill points
-					// TODO remove chat message; integrate with level up message in HUD
-					player.addChatMessage("Current unallocated skill points: " + skillPoints);
-				}
+				// TODO what happens when xp granted should increase level multiple times? should addXp return num levels gained?
+				// TODO SectionSkills.get(player).levelUp() will be called from within the attribute itself
+				attribute.addXp(player, amount);
 				PacketHandler.sendAttributePacket(player, attribute);
 				baseSkills.put(id, attribute);
 			}
 		} else {
 			throw new IllegalArgumentException("SEVERE: ID value of " + id + " is not a valid attribute id!");
 		}
+	}
+	
+	/**
+	 * Called each time character level increases (i.e. an Attribute increases in level)
+	 */
+	public void levelUp() {
+		// TODO since this is a public method, check that character level has really increased via attributes
+		// i.e. if (getCharacterLevel() < calculateCharacterLevel())
+		++totalLevel;
+		if (totalLevel <= MAX_SKILL_POINTS)
+			++skillPoints;
+		// TODO send levelUp packet to client to sync character level and skill points
+		// TODO remove chat message; integrate with level up message in HUD
+		player.addChatMessage("Current unallocated skill points: " + skillPoints);
 	}
 	
 	/** Buffer holding small amounts of XP; when it reaches the THRESHOLD, will be sent to the server */
@@ -164,7 +183,9 @@ public class SkillInfo implements IExtendedEntityProperties
 	//@SideOnly(Side.CLIENT) // can't make this final and client side at the same time
 	private static final float THRESHOLD = 0.01F;
 	
-	/** Initializes xpBuffer array and sets initial values to zero */
+	/**
+	 * Initializes xpBuffer array and sets initial values to zero
+	 */
 	@SideOnly(Side.CLIENT)
 	private void initXpBuffer() {
 		xpBuffer = new float[SkillBase.NUM_ATTRIBUTES];
@@ -214,7 +235,7 @@ public class SkillInfo implements IExtendedEntityProperties
 			decrementCooldown();
 		} else {
 			for (SkillActive skill : activeSkills.values()) {
-				System.out.println("Updating active skill " + skill.name);
+				//System.out.println("Updating active skill " + skill.name);
 				skill.onUpdate(player);
 			}
 		}

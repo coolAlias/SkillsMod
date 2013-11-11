@@ -57,10 +57,10 @@ public final class SkillsMod
 	}
 	
 	private void addRecipes() {
-		GameRegistry.addShapelessRecipe(ItemSkillBook.getSkillBook(SkillBase.skillsList[SkillBase.fireBlast.id], 1), Item.book, Item.gunpowder);
-		GameRegistry.addShapelessRecipe(ItemSkillBook.getSkillBook(SkillBase.skillsList[SkillBase.fireBlast.id], 2), Item.book, Item.gunpowder, Item.gunpowder);
-		GameRegistry.addShapelessRecipe(ItemSkillBook.getSkillBook(SkillBase.skillsList[SkillBase.fireBlast.id], 3), Item.book, Item.gunpowder, Item.gunpowder, Item.gunpowder);
-		GameRegistry.addShapelessRecipe(ItemSkillBook.getSkillBook(SkillBase.skillsList[SkillBase.fireBlast.id], 4), Item.book, Item.gunpowder, Item.gunpowder, Item.gunpowder, Item.gunpowder);
-		GameRegistry.addShapelessRecipe(ItemSkillBook.getSkillBook(SkillBase.skillsList[SkillBase.fireBlast.id], 5), Item.book, Item.gunpowder, Item.gunpowder, Item.gunpowder, Item.gunpowder, Item.gunpowder);
+		GameRegistry.addShapelessRecipe(ItemSkillBook.getSkillBook(SkillBase.skillsList[SkillBase.fireBlast.id], (byte) 1), Item.book, Item.gunpowder);
+		GameRegistry.addShapelessRecipe(ItemSkillBook.getSkillBook(SkillBase.skillsList[SkillBase.fireBlast.id], (byte) 2), Item.book, Item.gunpowder, Item.gunpowder);
+		GameRegistry.addShapelessRecipe(ItemSkillBook.getSkillBook(SkillBase.skillsList[SkillBase.fireBlast.id], (byte) 3), Item.book, Item.gunpowder, Item.gunpowder, Item.gunpowder);
+		GameRegistry.addShapelessRecipe(ItemSkillBook.getSkillBook(SkillBase.skillsList[SkillBase.fireBlast.id], (byte) 4), Item.book, Item.gunpowder, Item.gunpowder, Item.gunpowder, Item.gunpowder);
+		GameRegistry.addShapelessRecipe(ItemSkillBook.getSkillBook(SkillBase.skillsList[SkillBase.fireBlast.id], (byte) 5), Item.book, Item.gunpowder, Item.gunpowder, Item.gunpowder, Item.gunpowder, Item.gunpowder);
 	}
 }

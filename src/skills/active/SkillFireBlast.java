@@ -1,7 +1,6 @@
 package coolalias.skillsmod.skills.active;
 
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
 import coolalias.skillsmod.entity.skill.EntityFireBlast;
 import coolalias.skillsmod.skills.SkillActive;
@@ -27,9 +26,6 @@ public class SkillFireBlast extends SkillActive
 	
 	@Override
 	public SkillFireBlast newInstance() { return new SkillFireBlast(this); }
-	
-	@Override
-	public ResourceLocation getIconTexture() { return null; }
 	
 	@Override
 	public boolean activate(World world, EntityPlayer player)

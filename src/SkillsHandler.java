@@ -33,7 +33,7 @@ import coolalias.skillsmod.skills.SkillBase.AttributeCode;
  *
  */
 public class SkillsHandler
-{
+{	
 	/** Base XP values for low, medium and high value activities */
 	public static final float XP_LOW = 0.01F, XP_MED = 0.5F, XP_HIGH = 1F;
 	/** Modifier for sustained activities; using for 10 ticks gives same experience as a single use type */

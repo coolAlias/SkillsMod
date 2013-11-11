@@ -6,9 +6,13 @@ import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.ai.attributes.AttributeInstance;
 import net.minecraft.entity.ai.attributes.AttributeModifier;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.util.ResourceLocation;
 import coolalias.skillsmod.skills.SkillPassive;
 
+/**
+ * 
+ * @author coolAlias
+ *
+ */
 public class SkillIronFlesh extends SkillPassive
 {
 	// TODO assign a non-random UUID, though it seems to work with saving/loading as is
@@ -30,14 +34,13 @@ public class SkillIronFlesh extends SkillPassive
 	public SkillIronFlesh newInstance() { return new SkillIronFlesh(this); }
 	
 	@Override
-	public ResourceLocation getIconTexture() { return null; }
-	
-	@Override
-	protected boolean levelUp(EntityPlayer player) {
+	protected void levelUp(EntityPlayer player, int targetLevel)
+	{
+		// TODO test if can grant multiple levels of skill at once
+		while (level < targetLevel && canIncreaseLevel(player, level + 1)) { ++level; }
 		AttributeInstance attributeinstance = player.getEntityAttribute(SharedMonsterAttributes.maxHealth);
 		if (attributeinstance.getModifier(ironFleshUUID) != null) { attributeinstance.removeModifier(ironFleshModifier); }
 		AttributeModifier newModifier = (new AttributeModifier(ironFleshUUID, "Iron Flesh", (level + 1) * 2.0D, 0)).setSaved(true);
 		attributeinstance.applyModifier(newModifier);
-		return true;
 	}
 }
