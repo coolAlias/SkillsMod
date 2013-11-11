@@ -54,6 +54,8 @@ public class SkillInfo implements IExtendedEntityProperties
 		
 		for (int i = 0; i < SkillBase.NUM_ATTRIBUTES; ++i)
 			baseSkills.put(SkillBase.skillsList[i].id, SkillBase.skillsList[i].newInstance());
+		
+		if (player.worldObj.isRemote) { initXpBuffer(); }
 	}
 	
 	/** Returns a copy of this player's base skills map */
@@ -154,25 +156,31 @@ public class SkillInfo implements IExtendedEntityProperties
 		}
 	}
 	
-	// TODO client side only annotation causes NoSuchFieldError during entity constructing, maybe because it's initialized outside a method
-	//@SideOnly(Side.CLIENT)
-	private float[] clientXp = {0.0F,0.0F,0.0F,0.0F}; // new float[SkillBase.NUM_ATTRIBUTES]
+	/** Buffer holding small amounts of XP; when it reaches the THRESHOLD, will be sent to the server */
+	@SideOnly(Side.CLIENT)
+	private float[] xpBuffer;
 	
 	/** Amount of Xp after which the client will send update packet to server */
-	//@SideOnly(Side.CLIENT)
+	//@SideOnly(Side.CLIENT) // can't make this final and client side at the same time
 	private static final float THRESHOLD = 0.01F;
 	
+	/** Initializes xpBuffer array and sets initial values to zero */
+	@SideOnly(Side.CLIENT)
+	private void initXpBuffer() {
+		xpBuffer = new float[SkillBase.NUM_ATTRIBUTES];
+		for (int i = 0; i < xpBuffer.length; ++i) { xpBuffer[i] = 0.0F; }
+	}
+	
 	/**
-	 * Client side accumulates XP in a buffer, sending packet to server when it reaches
-	 * a certain threshold
+	 * Client side accumulates XP in a buffer, sending packet to server when it exceeds a certain threshold
 	 */
 	@SideOnly(Side.CLIENT)
 	private void addClientXp(float amount, byte id) {
-		clientXp[id] += amount;
-		if (clientXp[id] > THRESHOLD) {
-			System.out.println("Client xp " + clientXp[id] + " exceeds threshold, sending to server and clearing buffer");
-			PacketHandler.sendAddXpPacket(player, amount, id);
-			clientXp[id] = 0.0F;
+		xpBuffer[id] += amount;
+		if (xpBuffer[id] > THRESHOLD) {
+			System.out.println("Client xp " + xpBuffer[id] + " exceeds threshold, sending to server and clearing buffer");
+			PacketHandler.sendAddXpPacket(player, xpBuffer[id], id);
+			xpBuffer[id] = 0.0F;
 		}
 	}
 	
@@ -186,7 +194,7 @@ public class SkillInfo implements IExtendedEntityProperties
 		byte id = inputStream.readByte();
 		if (id < SkillBase.NUM_ATTRIBUTES) {
 			baseSkills.put(id, SkillBase.skillsList[id].loadFromStream(id, inputStream));
-			System.out.println("Attribute read from stream: " + baseSkills.get(id).name + ", current XP: " + ((Attribute) baseSkills.get(id)).getXp());
+			System.out.println("Attribute read from stream: " + baseSkills.get(id).name + ", current level: " + baseSkills.get(id).getLevel() + ", current XP: " + ((Attribute) baseSkills.get(id)).getXp());
 			//Attribute attribute = (Attribute) SkillBase.skillsList[id].loadFromStream(id, inputStream);
 			// TODO this way won't update character level / skill points
 			//baseSkills.put(id, attribute);
