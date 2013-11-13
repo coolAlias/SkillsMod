@@ -7,14 +7,19 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
-import coolalias.skillsmod.skills.SkillBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.network.INetworkManager;
 import net.minecraft.network.packet.Packet250CustomPayload;
+import coolalias.skillsmod.skills.SkillBase;
 import cpw.mods.fml.common.network.IPacketHandler;
 import cpw.mods.fml.common.network.PacketDispatcher;
 import cpw.mods.fml.common.network.Player;
 
+/**
+ * 
+ * @author coolAlias
+ *
+ */
 public class PacketHandler implements IPacketHandler
 {
 	/** Defining packet ids allow for subtypes of Packet250CustomPayload all on single channel */

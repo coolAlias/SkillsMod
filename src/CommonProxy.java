@@ -6,13 +6,13 @@ import java.util.Map;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.world.World;
-import coolalias.tutorial.inventory.ContainerCustomPlayer;
-import coolalias.tutorial.inventory.GuiCustomPlayerInventory;
-import coolalias.tutorial.steamfurnace.ContainerSteamFurnace;
-import coolalias.tutorial.steamfurnace.GuiSteamFurnace;
-import coolalias.tutorial.steamfurnace.TileEntitySteamFurnace;
 import cpw.mods.fml.common.network.IGuiHandler;
 
+/**
+ * 
+ * @author coolAlias
+ *
+ */
 public class CommonProxy implements IGuiHandler
 {
 	/** Used to store IExtendedEntityProperties data temporarily between player death and respawn or dimension change */
@@ -23,16 +23,12 @@ public class CommonProxy implements IGuiHandler
 	@Override
 	public Object getServerGuiElement(int guiId, EntityPlayer player, World world, int x, int y, int z)
 	{
-		// if (guiId == SkillsMod.GUI_CUSTOM_INV) return new ContainerCustomPlayer(player, player.inventory, ExtendedPlayer.get(player).inventory);
-		
 		return null;
 	}
 
 	@Override
 	public Object getClientGuiElement(int guiId, EntityPlayer player, World world, int x, int y, int z)
 	{
-		// if (guiId == SkillsMod.GUI_CUSTOM_INV) return new GuiCustomPlayerInventory(player, player.inventory, ExtendedPlayer.get(player).inventory);
-		
 		return null;
 	}
 

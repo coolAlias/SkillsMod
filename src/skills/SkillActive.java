@@ -58,7 +58,14 @@ public abstract class SkillActive extends SkillBase
 	 * @param duration value is in seconds
 	 */
 	protected SkillActive(String name, byte id, AttributeCode attribute, byte tier, int cooldown, int duration, boolean isGlobal) {
-		super(name, id, attribute, tier, MAX_LEVEL, true);
+		this(name, id, attribute, tier, MAX_LEVEL, cooldown, duration, isGlobal);
+	}
+	
+	/**
+	 * Full constructor for setting custom max level; registers new skill to the database
+	 */
+	protected SkillActive(String name, byte id, AttributeCode attribute, byte tier, byte maxLevel, int cooldown, int duration, boolean isGlobal) {
+		super(name, id, attribute, tier, maxLevel, true);
 		this.cooldown = cooldown * 20;
 		this.duration = duration * 20;
 		this.isGlobal = isGlobal;
@@ -70,6 +77,9 @@ public abstract class SkillActive extends SkillBase
 		this.duration = skill.duration;
 		this.isGlobal = skill.isGlobal;
 	}
+	
+	/** Returns true if this skill is currently active, however that is defined by the child class */
+	public abstract boolean isActive();
 	
 	/**
 	 * This method is called when the skill is used; override to specify effect(s), but be
@@ -118,7 +128,7 @@ public abstract class SkillActive extends SkillBase
 	
 	@Override
 	public boolean canIncreaseLevel(EntityPlayer player, int targetLevel) {
-		return level + 1 == targetLevel && targetLevel <= maxLevel;
+		return level + 1 == targetLevel && targetLevel <= maxLevel && checkPrerequisites(player);
 	}
 	
 	@Override
@@ -127,6 +137,7 @@ public abstract class SkillActive extends SkillBase
 		compound.setInteger("countdown", countdown);
 	}
 	
+	// TODO handle targetLevel possibilities other than just level + 1
 	@Override
 	protected void levelUp(EntityPlayer player, int targetLevel) { ++level; }
 	

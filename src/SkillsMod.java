@@ -1,9 +1,11 @@
 package coolalias.skillsmod;
 
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 import net.minecraftforge.common.MinecraftForge;
 import coolalias.skillsmod.entity.skill.EntityFireBlast;
 import coolalias.skillsmod.items.ItemSkillBook;
+import coolalias.skillsmod.skills.SkillActive;
 import coolalias.skillsmod.skills.SkillBase;
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.Mod.EventHandler;
@@ -21,6 +23,13 @@ import cpw.mods.fml.common.registry.LanguageRegistry;
 @Mod(modid = "skillsmod", name = "Skills Mod", version = "0.1.0")
 @NetworkMod(clientSideRequired=true, serverSideRequired=false, channels = {"skillsmod"}, packetHandler = PacketHandler.class)
 
+/**
+ * 
+ * @author coolAlias
+ * 
+ * Simple mod demonstrating adding player skills, attributes and xp
+ *
+ */
 public final class SkillsMod
 {
 	@Instance("skillsmod")
@@ -46,6 +55,7 @@ public final class SkillsMod
 	public void load(FMLInitializationEvent event)
 	{
 		proxy.registerRenderers();
+		addNames();
 		addRecipes();
 		MinecraftForge.EVENT_BUS.register(new SkillsHandler());
 		NetworkRegistry.instance().registerGuiHandler(this, new CommonProxy());
@@ -54,6 +64,17 @@ public final class SkillsMod
 	@EventHandler
 	public void postInit(FMLPostInitializationEvent event)
 	{
+	}
+	
+	private void addNames() {
+		for (int i = 0; i < SkillBase.skillsList.length; ++i) {
+			if (SkillBase.skillsList[i] instanceof SkillActive) {
+				for (int j = 1; j <= SkillBase.skillsList[i].getMaxLevel(); ++j) {
+					ItemStack book = ItemSkillBook.getSkillBook(SkillBase.skillsList[i], (byte) j);
+					if (book != null) { LanguageRegistry.addName(book, ((ItemSkillBook) book.getItem()).getItemStackDisplayName(book)); }
+				}
+			}
+		}
 	}
 	
 	private void addRecipes() {

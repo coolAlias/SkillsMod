@@ -7,16 +7,26 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemBook;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.world.World;
 import coolalias.skillsmod.SkillInfo;
 import coolalias.skillsmod.SkillsMod;
 import coolalias.skillsmod.skills.SkillActive;
 import coolalias.skillsmod.skills.SkillBase;
-import coolalias.skillsmod.skills.SkillBase.AttributeCode;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
+/**
+ * 
+ * @author coolAlias
+ * 
+ * Skill Books will grant an active skill to the player upon use provided the player
+ * meets the skill prerequisites. It is consumed if the player's skill level was increased.
+ * 
+ * Use the static method 'getSkillBook(skill, level)' to generate the appropriate ItemStack
+ * to give the player. Note that the method will return null if the passed in skill is not
+ * a valid Active Skill, so take appropriate measures when using it.
+ *
+ */
 public class ItemSkillBook extends ItemBook
 {
 	public ItemSkillBook(int par1) {
@@ -30,39 +40,43 @@ public class ItemSkillBook extends ItemBook
 	}
 	
 	/**
-	 * Returns a new ItemStack skill book teaching given skill at given tier
+	 * Returns a new ItemStack skill book teaching given skill at given level or null if skill is not an active skill
 	 */
-	public static ItemStack getSkillBook(SkillBase skill, byte tier) {
-		ItemStack book = new ItemStack(SkillsMod.skillBook,1,skill.id);
-		setTier(book, tier);
-		return book;
+	public static ItemStack getSkillBook(SkillBase skill, byte level)
+	{
+		if (skill instanceof SkillActive) {
+			ItemStack book = new ItemStack(SkillsMod.skillBook,1,skill.id);
+			setLevel(book, level);
+			return book;
+		}
+		return null;
 	}
 	
 	@Override
 	@SideOnly(Side.CLIENT)
 	public void getSubItems(int index, CreativeTabs tab, List list) {
-		for (int i = 0; i < SkillBase.skillsList.length; ++i) {
+		for (int i = 0; i < SkillBase.skillsList.length; ++i)
 			if (getSkillFromDamage(i) != null) { list.add(new ItemStack(index, 1, i)); }
-		}
 	}
 	
 	@Override
 	public String getUnlocalizedName(ItemStack stack) {
-		return getItemStackDisplayName(stack);
+		return super.getUnlocalizedName().substring(5) + "." + getSkillFromStack(stack).id;
 	}
 	
-	// TODO this still doesn't get rid of the '.name' appended to the tooltip display
 	@Override
-	public String getItemStackDisplayName(ItemStack stack) {
+	public String getItemStackDisplayName(ItemStack stack)
+	{
 		SkillActive skill = getSkillFromStack(stack);
 		String name = "Generic Skill Book";
-		if (skill != null) { name = "Skill Book of " + skill.name + getTierForDisplay(stack); }
-		return name.contains(".") ? name.substring(0, name.indexOf(".")) : name;
+		if (skill != null) { name = "Skill Book of " + skill.name + getLevelForDisplay(stack); }
+		return name;
 	}
 	
 	@Override
 	@SideOnly(Side.CLIENT)
-	public void addInformation(ItemStack stack, EntityPlayer player, List list, boolean par4) {
+	public void addInformation(ItemStack stack, EntityPlayer player, List list, boolean par4)
+	{
 		SkillActive skill = getSkillFromStack(stack);
 		if (skill != null) {
 			list.add("Use to learn or activate");
@@ -79,10 +93,12 @@ public class ItemSkillBook extends ItemBook
 		if (skill != null)
 		{
 			SkillInfo info = SkillInfo.get(player);
-			if (info.grantSkill(skill.id, getSkillTier(stack))) {
+			if (info.grantSkill(skill.id, getSkillLevel(stack))) {
 				if (!player.capabilities.isCreativeMode) { --stack.stackSize; }
-			} else if (info.getSkillLevel(skill) >= getSkillTier(stack)) {
+			} else if (info.getSkillLevel(skill) >= getSkillLevel(stack)) {
 				skill.activate(world, player);
+			} else {
+				player.addChatMessage("Failed to learn " + skill.name);
 			}
 		}
 		
@@ -90,15 +106,14 @@ public class ItemSkillBook extends ItemBook
 	}
 	
 	/**
-	 * Sets the skill tier this book will teach; will auto-cap at the appropriate level if necessary 
+	 * Sets the skill level this book will teach; will auto-cap at the appropriate level if necessary 
 	 */
-	public static void setTier(ItemStack stack, byte tier) {
+	public static void setLevel(ItemStack stack, byte level)
+	{
 		if (!stack.hasTagCompound()) stack.setTagCompound(new NBTTagCompound());
 		SkillActive skill = getSkillFromStack(stack);
 		byte maxLevel = skill != null ? skill.getMaxLevel() : 1;
-		stack.getTagCompound().setByte("skillTier", tier < 1 ? 1 : tier > maxLevel ? maxLevel : tier);
-		// TODO remove debug
-		System.out.println("Tier for " + stack.getDisplayName() + " set to " + getTierForDisplay(stack));
+		stack.getTagCompound().setByte("skillLevel", level < 1 ? 1 : level > maxLevel ? maxLevel : level);
 	}
 	
 	/**
@@ -123,18 +138,19 @@ public class ItemSkillBook extends ItemBook
 	}
 	
 	/**
-	 * Returns string version of the  skill tier this stack will teach when used, or "" if no tier has been set
+	 * Returns string version of the  skill level this stack will teach when used, or "" if no level has been set
 	 */
-	private static String getTierForDisplay(ItemStack stack) {
-		return EnumChatFormatting.ITALIC + (" (Lvl " + getSkillTier(stack) + ")");
+	private static String getLevelForDisplay(ItemStack stack) {
+		return (" (Lvl " + getSkillLevel(stack) + ")");
 	}
 	
 	/**
-	 * Returns the skill tier this stack will teach when used, or 1 if no tier was set
+	 * Returns the skill level this stack will teach when used, or 1 if no level was set
 	 */
-	private static byte getSkillTier(ItemStack stack) {
-		if (stack.hasTagCompound() && stack.getTagCompound().hasKey("skillTier"))
-			return stack.getTagCompound().getByte("skillTier");
+	private static byte getSkillLevel(ItemStack stack)
+	{
+		if (stack.hasTagCompound() && stack.getTagCompound().hasKey("skillLevel"))
+			return stack.getTagCompound().getByte("skillLevel");
 		return 1;
 	}
 }

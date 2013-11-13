@@ -4,6 +4,11 @@ import net.minecraft.client.renderer.entity.RenderFireball;
 import coolalias.skillsmod.entity.skill.EntityFireBlast;
 import cpw.mods.fml.client.registry.RenderingRegistry;
 
+/**
+ * 
+ * @author coolAlias
+ *
+ */
 public class ClientProxy extends CommonProxy
 {
 	@Override

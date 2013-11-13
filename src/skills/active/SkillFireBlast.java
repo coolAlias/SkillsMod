@@ -22,10 +22,13 @@ public class SkillFireBlast extends SkillActive
 		super(name, id, attribute, tier, cooldown, duration);
 	}
 	
-	private SkillFireBlast(SkillActive skill) { super(skill); }
+	private SkillFireBlast(SkillFireBlast skill) { super(skill); }
 	
 	@Override
 	public SkillFireBlast newInstance() { return new SkillFireBlast(this); }
+	
+	@Override
+	public boolean isActive() { return false; }
 	
 	@Override
 	public boolean activate(World world, EntityPlayer player)

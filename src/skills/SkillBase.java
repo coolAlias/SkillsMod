@@ -4,11 +4,14 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ResourceLocation;
+import coolalias.skillsmod.SkillInfo;
 import coolalias.skillsmod.skills.active.SkillFireBlast;
 import coolalias.skillsmod.skills.passive.SkillIronFlesh;
 
@@ -42,14 +45,11 @@ public abstract class SkillBase
 	private static final SkillBase cha = new Attribute("Charisma", AttributeCode.CHA);
 	
 	/* PASSIVE SKILLS */
-	public static final SkillBase ironFlesh = new SkillIronFlesh("Iron Flesh", (byte) skillIndex++, AttributeCode.STR, (byte) 1);
+	public static final SkillBase ironFlesh = new SkillIronFlesh("Iron Flesh", (byte) skillIndex++, AttributeCode.STR, (byte) 1).addDescription("Adds one heart per skill level");
 	//public static final SkillBase powerStrike = new SkillPassive("Power Strike", (byte) skillIndex++, AttributeCode.STR, (byte) 2);
 	
 	/* ACTIVE SKILLS */
-	public static final SkillBase fireBlast = new SkillFireBlast("Fire Blast", (byte) skillIndex++, AttributeCode.INT, (byte) 1, 15);
-	
-	/** Contains descriptions for tooltip display */
-	private List<String> tooltip = new ArrayList<String>();
+	public static final SkillBase fireBlast = new SkillFireBlast("Fire Blast", (byte) skillIndex++, AttributeCode.INT, (byte) 1, 15).addDescription("Blast enemies with fire").addPrerequisite(ironFlesh, (byte) 1);
 	
 	/** Skill's display name */
 	public final String name;
@@ -69,11 +69,11 @@ public abstract class SkillBase
 	/** Mutable field storing current level for this instance of SkillBase */
 	protected byte level = 0;
 	
-	/** List of ids for any skills required prior to acquiring this skill */
-	// TODO implement prerequisites if other than generic algorithm
-	// (e.g. base attribute score to unlock tier and at least one skill point in previous tier skill)
-	// MOVE to non-abstract classes, add abstract getter() to SkillBase
-	// protected List<Byte> prerequisites;
+	/** Contains descriptions for tooltip display */
+	private List<String> tooltip = new ArrayList<String>();
+	
+	/** Set containing the list of leveled Skills required prior to acquiring this skill */
+	private Set<SkillBase> prerequisites = new HashSet<SkillBase>(4);
 	
 	/**
 	 * Constructs immutable base skill with default max level and registers the skill to database
@@ -98,6 +98,21 @@ public abstract class SkillBase
 			if (skillsList[id] != null) { System.out.println("CONFLICT @ " + id + " skill id already occupied by " + skillsList[id].name + " while adding " + this.name); }
 			skillsList[id] = this;
 		}
+	}
+	
+	/**
+	 * TODO Override equals for List, Set, etc. implementations; may not be necessary
+	 */
+	@Override
+	public boolean equals(Object o)
+	{
+		if (this == o) { return true; }
+        else if (o != null && this.getClass() == o.getClass())
+        {
+        	SkillBase skill = (SkillBase) o;
+        	return skill.id == this.id && skill.level == this.level;
+        }
+        else { return false; }
 	}
 	
 	/** Returns a new instance of the skill with appropriate class type without registering it to the Skill database */
@@ -127,6 +142,30 @@ public abstract class SkillBase
 	/** Adds all entries in the provided list to the skill's tooltip display */
 	protected final SkillBase addDescription(List<String> list) { tooltip.addAll(list); return this; }
 	
+	/**
+	 * Adds requirement for player to have a certain skill of at least a certain level before learning this skill
+	 */
+	protected final SkillBase addPrerequisite(SkillBase skill, byte level) {
+		skill.level = level > maxLevel ? maxLevel : level;
+		prerequisites.add(skill);
+		return this;
+	}
+	
+	/**
+	 * Returns true if the player has all required skills at their required levels or higher
+	 */
+	protected final boolean checkPrerequisites(EntityPlayer player)
+	{
+		for (SkillBase skill : skillsList[this.id].prerequisites) {
+			if (SkillInfo.get(player).getSkillLevel(skill) < skill.level) {
+				player.addChatMessage(skill.name + " level " + skill.level + " is required before learning " + this.name);
+				return false;
+			}
+		}
+		
+		return true;
+	}
+	
 	/** Returns this skill's icon resource location */
 	// TODO use generic path/name.png format to simplify classes
 	public ResourceLocation getIconTexture() { return null; }
@@ -144,7 +183,7 @@ public abstract class SkillBase
 	 * Returns true if skill's level has increased
 	 */
 	public final boolean grantSkill(EntityPlayer player, int targetLevel) {
-		if (level <= targetLevel) { return false; }
+		if (targetLevel <= level) { return false; }
 		byte oldLevel = level;
 		if (canIncreaseLevel(player, targetLevel)) {
 			// TODO remove debug / integrate into HUD
