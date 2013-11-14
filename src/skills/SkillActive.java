@@ -89,7 +89,7 @@ public abstract class SkillActive extends SkillBase
 	public boolean activate(World world, EntityPlayer player) {
 		// TODO implement global cooldown differently
 		if (isGlobal) SkillInfo.get(player).setGlobalCooldown(cooldown);
-		setCooldown(cooldown);
+		setCooldown(player, cooldown);
 		// TODO remove debug
 		player.addChatMessage(this.name + " used! Cooldown time set to " + getCooldown() + " ticks. World remote? " + player.worldObj.isRemote);
 		return true;
@@ -105,7 +105,7 @@ public abstract class SkillActive extends SkillBase
 	public final int getCooldown() { return countdown; }
 	
 	/** Sets time (in ticks) required until this skill can be activated again */
-	public final void setCooldown(int time) { countdown = time; }
+	public void setCooldown(EntityPlayer player, int time) { countdown = time; }
 	
 	/** Returns maximum duration of this skill's effect (in ticks) */
 	public final int getDuration() { return duration; }
