@@ -39,8 +39,8 @@ public abstract class SkillPassive extends SkillBase
 	
 	@Override
 	public boolean canIncreaseLevel(EntityPlayer player, int targetLevel) {
-		SkillBase base = SkillInfo.get(player).getBaseSkills().get(attribute.ordinal());
-		return (base != null ? base.level >= (targetLevel - 1) * 5 : false) && checkPrerequisites(player);
+		int attributeLevel = SkillInfo.get(player).getSkillLevel(SkillBase.skillsList[attribute.ordinal()]);
+		return (attributeLevel >= (targetLevel - 1) * 5) && checkPrerequisites(player);
 	}
 	
 	@Override

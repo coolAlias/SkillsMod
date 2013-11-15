@@ -7,7 +7,10 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
+import net.minecraft.entity.SharedMonsterAttributes;
+import net.minecraft.entity.ai.attributes.AttributeModifier;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ResourceLocation;
@@ -18,38 +21,42 @@ import coolalias.skillsmod.skills.passive.SkillIronFlesh;
 /**
  * @author coolAlias
  *
- * Abstract base skill class provides foundation for both passive and active skills,
- * as well as attributes. Most class fields are immutable, with the sole
- * exception of level.
+ * Abstract base skill class provides foundation for both passive and active skills, as well as
+ * attributes such as Strength. Most class fields are immutable and/or not saved to NBT, with
+ * the sole exception of skill level.
  */
 public abstract class SkillBase
 {
-	/** Enumerated Attribute codes; use CODE.ordinal for position */
+	/** Enumerated SkillAttribute codes; use CODE.ordinal for position */
 	public static enum AttributeCode{STR,AGI,INT,CHA};
 	
 	/** Number of skills available, though not a firm maximum as more can be added to the ArrayList */
 	public static final byte MAX_LEVEL = 5, MAX_ATTRIBUTE = 30, NUM_ATTRIBUTES = 4, NUM_PASSIVE_SKILLS = 28, MAX_NUM_SKILLS = 64;
+	
+	// TODO assign non-random UUID, though it seems to work with saving/loading as is
+	/** AttributeModifier UUIDs for Strength and Agility skills */
+	private static final UUID strDmgBonusUUID = UUID.randomUUID();
+	private static final UUID agiMoveBonusUUID = UUID.randomUUID();
 	
 	/** For convenience in providing initial id values */
 	private static int skillIndex = NUM_ATTRIBUTES;
 	
 	/** Similar to itemsList in Item, giving easy access to any Skill */
 	public static final SkillBase[] skillsList = new SkillBase[MAX_NUM_SKILLS];
-	// TODO add and test descriptions or move getDescription to sub-classes to provide more specific information
 	
 	/** Construct and register base skill versions similar to vanilla Item class */
 	/* ATTRIBUTES don't need to be public as they will be referenced by AttributeCode only */
-	private static final SkillBase str = new Attribute("Strength", AttributeCode.STR).addDescription("Increases physical damage");
-	private static final SkillBase agi = new Attribute("Agility", AttributeCode.AGI).addDescription("Increases speed and accuracy");
-	private static final SkillBase wis = new Attribute("Intelligence", AttributeCode.INT);
-	private static final SkillBase cha = new Attribute("Charisma", AttributeCode.CHA);
+	private static final SkillBase str = new SkillAttribute("Strength", AttributeCode.STR, new AttributeModifier(strDmgBonusUUID, "Strength Damage Bonus", 1.0D, 2), SharedMonsterAttributes.attackDamage, 0.2D).addDescription("Increases physical damage");
+	private static final SkillBase agi = new SkillAttribute("Agility", AttributeCode.AGI, new AttributeModifier(agiMoveBonusUUID, "Agility Movement Bonus", 1.0D, 2), SharedMonsterAttributes.movementSpeed, 0.0025D).addDescription("Increases speed and accuracy");
+	private static final SkillBase wis = new SkillAttribute("Intelligence", AttributeCode.INT);
+	private static final SkillBase cha = new SkillAttribute("Charisma", AttributeCode.CHA);
 	
 	/* PASSIVE SKILLS */
 	public static final SkillBase ironFlesh = new SkillIronFlesh("Iron Flesh", (byte) skillIndex++, AttributeCode.STR, (byte) 1).addDescription("Adds one heart per skill level");
 	//public static final SkillBase powerStrike = new SkillPassive("Power Strike", (byte) skillIndex++, AttributeCode.STR, (byte) 2);
 	
 	/* ACTIVE SKILLS */
-	public static final SkillBase fireBlast = new SkillFireBlast("Fire Blast", (byte) skillIndex++, AttributeCode.INT, (byte) 1, 15).addDescription("Blast enemies with fire").addPrerequisite(ironFlesh, (byte) 1);
+	public static final SkillBase fireBlast = new SkillFireBlast("Fire Blast", (byte) skillIndex++, AttributeCode.INT, (byte) 1, 15).addDescription("Blast enemies with fire");
 	
 	/** Skill's display name */
 	public final String name;
@@ -101,7 +108,7 @@ public abstract class SkillBase
 	}
 	
 	/**
-	 * TODO Override equals for List, Set, etc. implementations; may not be necessary
+	 * Override equals for List, Set, etc. implementations; may not be necessary
 	 */
 	@Override
 	public boolean equals(Object o)
@@ -183,7 +190,7 @@ public abstract class SkillBase
 	 * Returns true if skill's level has increased
 	 */
 	public final boolean grantSkill(EntityPlayer player, int targetLevel) {
-		if (targetLevel <= level) { return false; }
+		if (targetLevel < level || targetLevel > maxLevel) { return false; }
 		byte oldLevel = level;
 		if (canIncreaseLevel(player, targetLevel)) {
 			// TODO remove debug / integrate into HUD
@@ -197,8 +204,6 @@ public abstract class SkillBase
 	 * Writes mutable data to NBT. When overriding, make sure to call the super method as well.
 	 */
 	public void writeToNBT(NBTTagCompound compound) {
-		// TODO remove debug
-		System.out.println("Writing " + name + " to NBT with id " + id + " and level " + level);
 		compound.setByte("id", id);
 		compound.setByte("level", level);
 	}
@@ -208,8 +213,6 @@ public abstract class SkillBase
 	 */
 	public void readFromNBT(NBTTagCompound compound) {
 		level = compound.getByte("level");
-		// TODO remove debug
-		System.out.println(this.name + " level from NBT: " + level);
 	}
 	
 	/**

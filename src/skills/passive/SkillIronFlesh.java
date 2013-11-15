@@ -36,11 +36,10 @@ public class SkillIronFlesh extends SkillPassive
 	@Override
 	protected void levelUp(EntityPlayer player, int targetLevel)
 	{
-		// TODO test if can grant multiple levels of skill at once
 		while (level < targetLevel && canIncreaseLevel(player, level + 1)) { ++level; }
 		AttributeInstance attributeinstance = player.getEntityAttribute(SharedMonsterAttributes.maxHealth);
 		if (attributeinstance.getModifier(ironFleshUUID) != null) { attributeinstance.removeModifier(ironFleshModifier); }
-		AttributeModifier newModifier = (new AttributeModifier(ironFleshUUID, "Iron Flesh", (level + 1) * 2.0D, 0)).setSaved(true);
+		AttributeModifier newModifier = (new AttributeModifier(ironFleshUUID, "Iron Flesh", level * 2.0D, 0)).setSaved(true);
 		attributeinstance.applyModifier(newModifier);
 	}
 }

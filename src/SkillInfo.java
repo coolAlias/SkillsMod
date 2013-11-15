@@ -12,7 +12,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.world.World;
 import net.minecraftforge.common.IExtendedEntityProperties;
-import coolalias.skillsmod.skills.Attribute;
+import coolalias.skillsmod.skills.SkillAttribute;
 import coolalias.skillsmod.skills.SkillActive;
 import coolalias.skillsmod.skills.SkillBase;
 import coolalias.skillsmod.skills.SkillBase.AttributeCode;
@@ -85,24 +85,15 @@ public class SkillInfo implements IExtendedEntityProperties
 		SkillBase skill = map.containsKey(id) ? (SkillBase) map.get(id) : SkillBase.skillsList[id].newInstance();
 		if (skill.grantSkill(player, targetLevel)) { map.put(id, skill);  return true; }
 		return false;
-		//if (skill.grantSkill(player)) { player.addChatMessage(skill.name + " level has increased to level " + skill.getLevel() + "!"); }
-		//else { player.addChatMessage("Skill " + skill.name + " is already at the maximum level."); }
-		
-		//map.put(id, skill);
-		//return leveled;
 	}
 	
-	public boolean activateSkill(World world, byte id)
-	{
-		player.addChatMessage("Activating skill " + id + ". World remote? " + player.worldObj.isRemote);
-		if (activeSkills.containsKey(id)) {
-			// TODO add canUse check to prevent using while cooling down
-			// && ((SkillActive) skills[id]).canUse(player)) {
-			return activeSkills.get(id).activate(world, player);
-		} else {
-			System.out.println("WARNING: attempting to activate unlearned or non-active skill " + id);
-			return false;
-		}
+	/** Returns true if the player successfully activated his/her skill */
+	public boolean activateSkill(World world, SkillActive skill) { return activateSkill(world, skill.id); }
+	
+	/** Returns true if the player successfully activated his/her skill */
+	public boolean activateSkill(World world, byte id) {
+		if (activeSkills.containsKey(id)) { return activeSkills.get(id).activate(world, player); }
+		return false;
 	}
 	
 	/** Returns current total character level */
@@ -131,9 +122,8 @@ public class SkillInfo implements IExtendedEntityProperties
 		if (skillPoints > 0) {
 			--skillPoints;
 			return true;
-		} else {
-			return false;
 		}
+		return false;
 	}
 	
 	/** Adds Xp amount to the corresponding attribute by enum type */
@@ -149,9 +139,7 @@ public class SkillInfo implements IExtendedEntityProperties
 			if (this.player.worldObj.isRemote) {
 				addClientXp(amount, id);
 			} else {
-				Attribute attribute = (Attribute) baseSkills.get(id);
-				// TODO what happens when xp granted should increase level multiple times? should addXp return num levels gained?
-				// TODO SectionSkills.get(player).levelUp() will be called from within the attribute itself
+				SkillAttribute attribute = (SkillAttribute) baseSkills.get(id);
 				attribute.addXp(player, amount);
 				PacketHandler.sendAttributePacket(player, attribute);
 				baseSkills.put(id, attribute);
@@ -164,7 +152,8 @@ public class SkillInfo implements IExtendedEntityProperties
 	/**
 	 * Called each time character level increases (i.e. an Attribute increases in level)
 	 */
-	public void levelUp() {
+	public void levelUp()
+	{
 		// TODO since this is a public method, check that character level has really increased via attributes
 		// i.e. if (getCharacterLevel() < calculateCharacterLevel())
 		++totalLevel;
@@ -196,10 +185,10 @@ public class SkillInfo implements IExtendedEntityProperties
 	 * Client side accumulates XP in a buffer, sending packet to server when it exceeds a certain threshold
 	 */
 	@SideOnly(Side.CLIENT)
-	private void addClientXp(float amount, byte id) {
+	private void addClientXp(float amount, byte id)
+	{
 		xpBuffer[id] += amount;
 		if (xpBuffer[id] > THRESHOLD) {
-			System.out.println("Client xp " + xpBuffer[id] + " exceeds threshold, sending to server and clearing buffer");
 			PacketHandler.sendAddXpPacket(player, xpBuffer[id], id);
 			xpBuffer[id] = 0.0F;
 		}
@@ -208,17 +197,17 @@ public class SkillInfo implements IExtendedEntityProperties
 	/**
 	 * Reads single Attribute from stream and updates the local baseSkills map
 	 * Should only be needed on the client side to update from server
-	 * TODO generalize to update any type of skill (should only be needed for Attributes, though, as gaining other skills is done on both sides?)
+	 * TODO generalize to update any type of skill (should only be needed for Attributes,
+	 * though, as gaining other skills is done on both sides?)
 	 */
 	public void updateAttributeFromStream(DataInputStream inputStream) throws IOException, IllegalArgumentException
 	{
 		byte id = inputStream.readByte();
 		if (id < SkillBase.NUM_ATTRIBUTES) {
 			baseSkills.put(id, SkillBase.skillsList[id].loadFromStream(id, inputStream));
-			System.out.println("Attribute read from stream: " + baseSkills.get(id).name + ", current level: " + baseSkills.get(id).getLevel() + ", current XP: " + ((Attribute) baseSkills.get(id)).getXp());
-			//Attribute attribute = (Attribute) SkillBase.skillsList[id].loadFromStream(id, inputStream);
+			System.out.println("Attribute read from stream: " + baseSkills.get(id).name +
+					", current level: " + baseSkills.get(id).getLevel() + ", current XP: " + ((SkillAttribute) baseSkills.get(id)).getXp());
 			// TODO this way won't update character level / skill points
-			//baseSkills.put(id, attribute);
 		} else {
 			throw new IllegalArgumentException("Updating attribute from packet contains invalid id " + id);
 		}
@@ -234,10 +223,7 @@ public class SkillInfo implements IExtendedEntityProperties
 			System.out.println("Global cooldown in effect; time remaining " + globalCooldown);
 			decrementCooldown();
 		} else {
-			for (SkillActive skill : activeSkills.values()) {
-				//System.out.println("Updating active skill " + skill.name);
-				skill.onUpdate(player);
-			}
+			for (SkillActive skill : activeSkills.values()) { skill.onUpdate(player); }
 		}
 	}
 	
@@ -250,19 +236,11 @@ public class SkillInfo implements IExtendedEntityProperties
 	/** Decrements global cooldown; doesn't check if isCooling */
 	private void decrementCooldown() { --globalCooldown; }
 
-	/**
-	 * Used to register these extended properties for the player during EntityConstructing event
-	 */
-	public static final void register(EntityPlayer player) {
-		player.registerExtendedProperties(SkillInfo.EXT_PROP_NAME, new SkillInfo(player));
-	}
+	/** Used to register these extended properties for the player during EntityConstructing event */
+	public static final void register(EntityPlayer player) { player.registerExtendedProperties(EXT_PROP_NAME, new SkillInfo(player)); }
 
-	/**
-	 * Returns ExtendedPlayer properties for player
-	 */
-	public static final SkillInfo get(EntityPlayer player) {
-		return (SkillInfo) player.getExtendedProperties(EXT_PROP_NAME);
-	}
+	/** Returns ExtendedPlayer properties for player */
+	public static final SkillInfo get(EntityPlayer player) { return (SkillInfo) player.getExtendedProperties(EXT_PROP_NAME); }
 
 	@Override
 	public final void saveNBTData(NBTTagCompound compound)
@@ -304,9 +282,9 @@ public class SkillInfo implements IExtendedEntityProperties
 			activeSkills.put(id, ((SkillActive) SkillBase.skillsList[id]).loadFromNBT(skill));
 		}
 		
-		calculateCharacterLevel();
 		this.skillPoints = compound.getByte("SkillPoints");
 		this.globalCooldown = compound.getInteger("GlobalCooldown");
+		//calculateCharacterLevel();
 	}
 	
 	/**
@@ -340,17 +318,14 @@ public class SkillInfo implements IExtendedEntityProperties
 		}
 		
 		skillPoints = inputStream.readByte();
+		System.out.println("Skill points from NBT: " + skillPoints);
 	}
 
 	@Override
 	public void init(Entity entity, World world) {}
 
-	/**
-	 * Makes it look nicer in the methods save/loadProxyData
-	 */
-	private static final String getSaveKey(EntityPlayer player) {
-		return player.username + ":" + EXT_PROP_NAME;
-	}
+	/** Makes it look nicer in the methods save/loadProxyData */
+	private static final String getSaveKey(EntityPlayer player) { return player.username + ":" + EXT_PROP_NAME; }
 
 	/**
 	 * Does everything I did in onLivingDeathEvent and it's static,
@@ -380,8 +355,6 @@ public class SkillInfo implements IExtendedEntityProperties
 		playerData.sync();
 	}
 
-	public final void sync() {
-		System.out.println("Syncing skill info.");
-		if (!player.worldObj.isRemote) { PacketHandler.sendSyncSkillsPacket(player); }
-	}
+	/** Sends full update packet to client */
+	public final void sync() { if (!player.worldObj.isRemote) PacketHandler.sendSyncSkillsPacket(player); }
 }

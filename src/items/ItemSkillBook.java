@@ -12,6 +12,7 @@ import coolalias.skillsmod.SkillInfo;
 import coolalias.skillsmod.SkillsMod;
 import coolalias.skillsmod.skills.SkillActive;
 import coolalias.skillsmod.skills.SkillBase;
+import coolalias.skillsmod.skills.SkillBase.AttributeCode;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
@@ -35,7 +36,6 @@ public class ItemSkillBook extends ItemBook
 		setMaxDamage(0);
 		// TODO use custom texture or just use vanilla book?
 		setTextureName("book_normal");
-		// TODO set to one of Quest's creative tabs
 		setCreativeTab(CreativeTabs.tabMisc);
 	}
 	
@@ -61,7 +61,7 @@ public class ItemSkillBook extends ItemBook
 	
 	@Override
 	public String getUnlocalizedName(ItemStack stack) {
-		return super.getUnlocalizedName().substring(5) + "." + getSkillFromStack(stack).id;
+		return super.getUnlocalizedName().substring(5) + "." + getSkillFromStack(stack).id + "." + getSkillLevel(stack);
 	}
 	
 	@Override
@@ -87,7 +87,8 @@ public class ItemSkillBook extends ItemBook
 	@Override
 	public ItemStack onItemRightClick(ItemStack stack, World world, EntityPlayer player)
 	{
-		//if (!world.isRemote) { SkillInfo.get(player).addXp(10.0F, AttributeCode.CHA); }
+		if (!world.isRemote) { SkillInfo.get(player).addXp(100.0F, AttributeCode.AGI); }
+		//SkillInfo.get(player).grantSkill(SkillBase.ironFlesh.id, (byte) (SkillInfo.get(player).getSkillLevel(SkillBase.ironFlesh) + 1));
 		
 		SkillActive skill = getSkillFromStack(stack);
 		if (skill != null)
@@ -96,7 +97,8 @@ public class ItemSkillBook extends ItemBook
 			if (info.grantSkill(skill.id, getSkillLevel(stack))) {
 				if (!player.capabilities.isCreativeMode) { --stack.stackSize; }
 			} else if (info.getSkillLevel(skill) >= getSkillLevel(stack)) {
-				skill.activate(world, player);
+				info.activateSkill(world, skill.id);
+				//skill.activate(world, player);
 			} else {
 				player.addChatMessage("Failed to learn " + skill.name);
 			}

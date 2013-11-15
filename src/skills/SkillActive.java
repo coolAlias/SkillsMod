@@ -83,16 +83,23 @@ public abstract class SkillActive extends SkillBase
 	
 	/**
 	 * This method is called when the skill is used; override to specify effect(s), but be
-	 * sure to make a call to super class
+	 * sure to make a call to super class.
+	 * NOTE that it can be used to activate a skill the player does not have - use SkillInfo's
+	 * activateSkill method instead to ensure the skill used is the player's
 	 * @return true if skill was successfully activated
 	 */
-	public boolean activate(World world, EntityPlayer player) {
-		// TODO implement global cooldown differently
-		if (isGlobal) SkillInfo.get(player).setGlobalCooldown(cooldown);
-		setCooldown(player, cooldown);
-		// TODO remove debug
-		player.addChatMessage(this.name + " used! Cooldown time set to " + getCooldown() + " ticks. World remote? " + player.worldObj.isRemote);
-		return true;
+	public boolean activate(World world, EntityPlayer player)
+	{
+		if (canUse(player)) {
+			// TODO implement global cooldown differently
+			if (isGlobal) SkillInfo.get(player).setGlobalCooldown(cooldown);
+			setCooldown(player, cooldown);
+			// TODO remove debug
+			player.addChatMessage(this.name + " used! Cooldown time set to " + getCooldown() + " ticks. World remote? " + player.worldObj.isRemote);
+			return true;
+		}
+		player.addChatMessage("Can't currently use " + name);
+		return false;
 	}
 	
 	/** Returns true if this skill can currently be used by the player; override to add further conditions */
@@ -105,7 +112,7 @@ public abstract class SkillActive extends SkillBase
 	public final int getCooldown() { return countdown; }
 	
 	/** Sets time (in ticks) required until this skill can be activated again */
-	public void setCooldown(EntityPlayer player, int time) { countdown = time; }
+	public void setCooldown(EntityPlayer player, int time) { countdown = time - (SkillInfo.get(player).getSkillLevel(SkillBase.skillsList[AttributeCode.INT.ordinal()]) * 4); }
 	
 	/** Returns maximum duration of this skill's effect (in ticks) */
 	public final int getDuration() { return duration; }
@@ -117,7 +124,6 @@ public abstract class SkillActive extends SkillBase
 	 * Decrements countdown timer tracking cooldown
 	 */
 	protected void decrementCooldown() {
-		// TODO cooldown rate should be affected by other skills, but only calculate when setting the initial time to cool down
 		if (isCooling()) {
 			--countdown;
 			// TODO remove debug
